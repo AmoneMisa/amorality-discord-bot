@@ -32,7 +32,7 @@ client.once('ready', () => {
     console.log(`🤖 Logged in as ${client.user?.tag}`);
 });
 
-client.on('interactionCreate', async interaction => {
+client.on('interactionCreate', async (interaction: any) => {
     if (!interaction.isChatInputCommand()) {
         return;
     }
