@@ -1,5 +1,9 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, ActionRowBuilder, StringSelectMenuBuilder } from 'discord.js';
-import { UserModel } from '../models/User.js';
+import {
+    SlashCommandBuilder,
+    ActionRowBuilder,
+    StringSelectMenuBuilder,
+} from 'discord.js';
+import { prisma } from '../lib/prisma.js'
 
 export const statsCommands = [
     {
@@ -10,24 +14,33 @@ export const statsCommands = [
             .addSubcommand(sub => sub.setName('mine').setDescription('Моя статистика'))
             .addSubcommand(sub => sub.setName('custom').setDescription('Стата по месяцам')),
 
-        async execute(interaction: ChatInputCommandInteraction) {
+        async execute(interaction) {
             const subcommand = interaction.options.getSubcommand();
 
             if (subcommand === 'all') {
-                const users = await UserModel.find();
+                const users = await prisma.user.findMany();
                 const stats = users.map(u => `<@${u.discordId}>: ${u.gold}`).join('\n');
-                return interaction.reply(`📊 Стата за месяц:\n${stats}`);
-            } else if (subcommand === 'mine') {
-                const user = await UserModel.findOne({ discordId: interaction.user.id });
-                if (!user) {
-                    return interaction.reply('❌ Ты бэмж. По тебе ещё нет данных.');
-                }
-                return interaction.reply(`📊 Моё золото: **${user.gold}**`);
-            } else if (subcommand === 'custom') {
-                const users = await UserModel.find();
+                return interaction.reply(`📊 Стата за текущий месяц:\n${stats}`);
+            }
 
-                // Собираем все месяцы из всех пользователей
-                const allMonths = new Set<string>();
+            if (subcommand === 'mine') {
+                const user = await prisma.user.findUnique({
+                    where: { discordId: interaction.user.id },
+                });
+
+                if (!user) {
+                    return interaction.reply('❌ По тебе ещё нет данных.');
+                }
+
+                return interaction.reply(`📊 Твоё золото: **${user.gold}**`);
+            }
+
+            if (subcommand === 'custom') {
+                const users = await prisma.user.findMany({
+                    include: { history: true },
+                });
+
+                const allMonths = new Set();
                 users.forEach(user => {
                     user.history.forEach(entry => {
                         allMonths.add(entry.month);
@@ -35,7 +48,7 @@ export const statsCommands = [
                 });
 
                 let months = Array.from(allMonths);
-                // Сортируем по убыванию: новее -> старее
+
                 months.sort((a, b) => {
                     const [aYear, aMonth] = a.split('-').map(Number);
                     const [bYear, bMonth] = b.split('-').map(Number);
@@ -43,11 +56,10 @@ export const statsCommands = [
                     return bMonth - aMonth;
                 });
 
-                // Оставляем максимум 12 месяцев
                 months = months.slice(0, 12);
 
                 if (months.length < 2) {
-                    return interaction.reply('❌ Недостаточно данных для выбора месяца (нужно минимум 2 месяца данных).');
+                    return interaction.reply('❌ Недостаточно данных. Нужно минимум 2 месяца.');
                 }
 
                 const select = new StringSelectMenuBuilder()
@@ -60,9 +72,12 @@ export const statsCommands = [
                         }))
                     );
 
-                const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select);
+                const row = new ActionRowBuilder().addComponents(select);
 
-                await interaction.reply({ content: '🔧 Выбери месяц:', components: [row] });
+                return interaction.reply({
+                    content: '🔧 Выбери месяц:',
+                    components: [row],
+                });
             }
         },
     },
