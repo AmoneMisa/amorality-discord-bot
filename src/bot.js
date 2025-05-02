@@ -33,7 +33,7 @@ commands.forEach(cmd => client.commands.set(cmd.data.name, cmd));
 
 client.once('ready', async () => {
     console.log(`🤖 Logged in as ${client.user.tag}`);
-    await checkAndResetMonthlyGold();
+    await checkAndResetMonthlyGold(process.env.GUILD_ID);
     console.log('✅ Check gold on start finished');
 });
 
