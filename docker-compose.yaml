@@ -2,7 +2,9 @@ services:
   bot:
     build: .
     volumes:
-      - ./.env:/opt/app/.env
+      - type: bind
+        source: ./.env
+        target: /opt/app/.env
   postgres:
     image: "postgres:17"
     volumes:
