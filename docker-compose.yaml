@@ -5,12 +5,14 @@ services:
       - type: bind
         source: ./.env
         target: /opt/app/.env
+    restart: unless-stopped
   postgres:
     image: "postgres:17"
     volumes:
       - pgdata:/var/lib/postgresql/data
     environment:
       POSTGRES_PASSWORD: postgres
+    restart: unless-stopped
 volumes:
   pgdata:
     driver: local
