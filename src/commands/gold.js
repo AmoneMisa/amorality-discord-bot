@@ -69,7 +69,7 @@ export const goldCommands = [
                 },
             });
 
-            return interaction.reply(`✅ Текущее золото: **${updatedGold}**`);
+            return interaction.reply(`✅ Добавленное золото: ${amount}\n Текущее золото: **${updatedGold}**`);
         },
     },
 ];
